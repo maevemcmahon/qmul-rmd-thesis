@@ -1,0 +1,151 @@
+---
+title: "Chapter 1"
+output: html_document
+---
+```{r echo=FALSE, results="hide", message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(knitr)
+```
+
+#This is the title at the beginning of the chapter
+\chaptermark{Title at top of each page}
+
+Can put an abstract for the chapter here that will appear right under the title.
+
+##Introduction
+After the development of Operanter, ... 1) the Leiden University setup has been used in many published studies over the last decade [e.g. @Chen2015a; @Heijningen2009; @Holveck2007].
+
+There's an image held in an External subdirectory about brains (\autoref{fig-introneuroanatomy}). Weirdly always make sure there's a full empty line space before an R chunk!
+
+```{r echo=FALSE, fig.cap="\\label{fig-introneuroanatomy}Parasagittal cartoon of song perception regions in the zebra finch. MLd - dorsal lateral nucleus of the mesencephalon. Ov - nucleus ovoidalis. L2 - Field L2. NCM - caudomedial nidopallium. CMM - caudomedial mesopallium. CLM - caudolateral mesopallium."}
+
+include_graphics('./External_images/intro_neuroanatomy.pdf')
+```
+
+##Methods
+
+###Animals
+Some text here
+
+###Apparatus
+Some more text here
+
+###Statistics
+All statistics were carried out using the base stats package in R v3.3.3 unless otherwise noted.
+
+##Results
+Some results here can be seen in \autoref{fig-leilon}.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="\\label{fig-leilon}Figure title and caption here.", fig.width=6}
+
+LeiData <- read.csv("./Data/LeidenActivity.csv")
+LeiData2 <- read.csv("./Data/Leiden_condition.csv")
+LeiData <- left_join(LeiData, LeiData2, by="BirdID") %>%
+  filter(Condition != "Hab")
+LonData <- read.csv("./Data/LondonActivity.csv")
+LeiData$BirdID <- as.factor(LeiData$BirdID)
+LonData$BirdID <- as.factor(LonData$BirdID)
+LonData <- LonData %>%
+  mutate(Cohort = "London") %>%
+  mutate(Bin = (Index - IndexBase) %/% 100) %>%
+  select(BirdID, Stimulus, Correct, Bin, Cohort)
+LonData$Cohort <- as.factor(LonData$Cohort)
+LeiData <- LeiData %>%
+  select(BirdID, Stimulus, Correct, Bin, Cohort)
+
+LeiLon <- bind_rows(LeiData, LonData)
+LeiLon$BirdID <- as.factor(LeiLon$BirdID)
+LeiLon$Cohort <- as.factor(LeiLon$Cohort)
+
+minBin <- 0
+maxBin <- 26
+Go <- LeiLon %>%
+  filter(Bin > minBin) %>%
+  filter(Bin < maxBin) %>%
+  filter(Stimulus=="GO") %>%
+  group_by(Bin, BirdID, Cohort) %>%
+  summarise(TotalGo = n())
+  
+NoGo <- LeiLon %>%
+  filter(Bin > minBin) %>%
+  filter(Bin < maxBin) %>%
+  filter(Stimulus=="NO-GO") %>%
+  group_by(Bin, BirdID, Cohort) %>%
+  summarise(TotalNoGo = n())
+
+CorrGo <- LeiLon %>%
+  filter(Bin > minBin) %>%
+  filter(Bin < maxBin) %>%
+  filter(Stimulus=="GO") %>%
+  group_by(Bin, BirdID, Cohort) %>%
+  summarise(CorrectGo = sum(Correct))
+
+CorrNoGo <- LeiLon %>%
+  filter(Bin > minBin) %>%
+  filter(Bin < maxBin) %>%
+  filter(Stimulus=="NO-GO") %>%
+  group_by(Bin, BirdID, Cohort) %>%
+  summarise(CorrectNoGo = sum(Correct))
+  
+GNG <- left_join(Go, NoGo, by=c('Bin', 'BirdID'))
+Corr <- left_join(CorrGo, CorrNoGo, by=c('Bin', 'BirdID'))
+All <- left_join(GNG, Corr, by=c('Bin', 'BirdID'))
+
+All <- All %>%
+  filter(!is.na(CorrectGo)) %>%
+  filter(!is.na(TotalGo)) %>%
+  filter(!is.na(CorrectNoGo)) %>%
+  filter(!is.na(TotalNoGo)) %>%
+  filter(BirdID != 301) %>%
+  select(Bin, BirdID, Cohort.x.x, TotalGo, TotalNoGo, CorrectGo, CorrectNoGo)
+
+All$Cohort <- All$Cohort.x.x
+
+All$zHIT <- qnorm(All$CorrectGo/All$TotalGo + 0.01)
+All$zFA <- qnorm(1- All$CorrectNoGo/All$TotalNoGo + 0.01)
+All$dr <- All$CorrectGo/All$TotalGo / (All$CorrectGo/All$TotalGo + (1 - (All$CorrectNoGo/All$TotalNoGo)))
+# correct responses to Go stimuli divided by the sum of the proportion correct responses to Go stimuli and the proportion incorrect responses to No-Go stimuli)
+All$dprime <- All$zHIT - All$zFA
+
+dplot <- ggplot(data=All, aes(x=Bin, y=dprime, color=Cohort)) + geom_point(aes(colour=Cohort)) + stat_smooth(method = "lm", formula = y ~ log(x), size=1) + ylab("d'") + xlab("100-trial bins") + theme_minimal()
+dplot
+```
+
+Check out some italics (use an underscore on either side) (_t_(34.6) = -3.2, _p_ = 0.003).
+
+Also have some tables (see \autoref{tab-expDesign} and \autoref{tab-lmmPixelIntensity}. 
+\begin{table}[]
+\centering
+\caption{Go and No-Go training and playback stimuli for all conditions.}
+\label{tab-expDesign}
+\begin{tabular}{lllll}
+                           &            & \multicolumn{3}{c}{Stimulus}              \\
+                           &            & \multicolumn{2}{c}{Training} & Testing    \\ \cline{3-5} 
+                           &            & Go           & No-Go         & Playback   \\ \cline{3-5} 
+\multirow{4}{*}{Condition} & Go         & A            & B             & A          \\
+                           & No-Go      & B            & A             & A          \\
+                           & Novel      & C            & D             & A          \\
+                           & Habituated & Red          & Green         & A         
+\end{tabular}
+\end{table}
+
+\begin{table}
+\caption{LMMs for median pixel intensity of all target brain regions.}
+\label{tab-lmmPixelIntensity}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llrlllrr@{}}
+\toprule
+Model& Factors                      & df & AIC   & Log-lik.       & Comparator & $\chi^2$ test & P ($>\chi^2$) \\ \midrule
+NULL & WholeMed + (1 | SongID)      & 4  & 945.9 & -469.0         &            &               &               \\
+1    & NULL + Condition             & 7  & 948.0 & -467.0         & NULL       & 3.9           & 0.27          \\
+2    & NULL + ROI                   & 11 & 886.0 & -432.0         & NULL       & 73.9          & 2.4e-14       \\
+3    & Model 2 + Condition          & 14 & 885.2 & -428.6         & Model 2    & 6.8           & 0.08          \\
+4    & Model 3 + Condition:ROI      & 35 & 906.0 & -418.0         & Model 3    & 21.2          & 0.45    
+     \\ \bottomrule
+\end{tabular}
+}
+\end{table}
+
+##Discussion
+Blah blah blah.

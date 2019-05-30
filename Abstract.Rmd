@@ -1,0 +1,11 @@
+---
+title: "Abstract"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+\phantomsection
+\chapter*{Abstract}
+
+Zebra finches are a well-established animal model...continue here

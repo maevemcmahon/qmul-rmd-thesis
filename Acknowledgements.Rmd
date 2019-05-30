@@ -1,0 +1,10 @@
+---
+title: "Acknowledgements"
+output: html_document
+---
+\phantomsection
+\chapter*{Acknowledgements}
+\addcontentsline{toc}{chapter}{Acknowledgements}
+\pagestyle{plain}
+
+Thank you supervisor, thank you friends, thank you family.
